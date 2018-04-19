@@ -65,7 +65,7 @@ public class JxlsUtils{
      *        </p>
      */
     public static void exportExcel(String templateExcelURL, String customeExcelName,List<Map<String, Object>> list, Map<String, Object> param,
-                                   HttpServletResponse response) throws CustomException{
+                                   HttpServletResponse response) throws CustomException {
         if (StringUtils.isBlank(templateExcelURL)) {
             throw new CustomException("Excel模板URL不能为空");
         }
@@ -243,12 +243,15 @@ public class JxlsUtils{
             /*-------------------- 给模板添加自定义功能 ----------------------------*/
             JexlExpressionEvaluator evaluator = (JexlExpressionEvaluator)transformer.getTransformationConfig().getExpressionEvaluator();
             Map<String, Object> funcs = new HashMap<String, Object>();
-            funcs.put("utils", new JxlsUtils());    //eg：${utils:dateFmt(date,"yyyy-MM-dd")}-格式化日期
+            //eg：${utils:dateFmt(date,"yyyy-MM-dd")}-格式化日期
+            funcs.put("utils", new JxlsUtils());
             evaluator.getJexlEngine().setFunctions(funcs);
 
             jxlsHelper.processTemplate(context, transformer);
+            //jxlsHelper.processTemplate(inputStream,outputStream,context);
             outputStream.flush();
         } catch (Exception e) {
+            e.printStackTrace();
             throw new CustomException("Excel导出异常,请重试");
         } finally {
             if (inputStream != null) {
@@ -277,6 +280,34 @@ public class JxlsUtils{
         if(template!=null){
             exportExcel(new FileInputStream(template), os, model);
         }
+    }
+
+    /**
+     * 日期格式化
+     * @param date
+     * @param fmt
+     * @return
+     */
+    public String dateFmt(Date date, String fmt) {
+        if (date == null) {
+            return "";
+        }
+        try {
+            SimpleDateFormat dateFmt = new SimpleDateFormat(fmt);
+            return dateFmt.format(date);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    /**
+     * 手机号脱敏
+     * @param phone
+     * @return
+     */
+    public String phoneFmt(String phone){
+        return phone.substring(0,3)+"****"+phone.substring(7,11);
     }
 
 }
