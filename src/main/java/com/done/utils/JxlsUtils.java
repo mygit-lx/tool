@@ -39,7 +39,7 @@ public class JxlsUtils{
 
     /**
      * <p>
-     * 自定义excel模板导出excel<br>
+     * 自定义excel模板导出excel-自定义路径导出<br>
      * </p>
      * <p>
      * -----版本-----变更日期-----责任人-----变更内容<br>
@@ -128,6 +128,115 @@ public class JxlsUtils{
             //InputStream in = ExportExcel.class.getResourceAsStream("/template/" + templateName);
             inputStream = new BufferedInputStream(new FileInputStream(templateExcelURL));
             outputStream = response.getOutputStream();
+            JxlsHelper jxlsHelper = JxlsHelper.getInstance();
+            Transformer transformer  = jxlsHelper.createTransformer(inputStream, outputStream);
+
+            /*-------------------- 给模板添加自定义功能 ----------------------------*/
+            JexlExpressionEvaluator evaluator = (JexlExpressionEvaluator)transformer.getTransformationConfig().getExpressionEvaluator();
+            Map<String, Object> funcs = new HashMap<String, Object>();
+            funcs.put("utils", new JxlsUtils());    //eg：${utils:dateFmt(date,"yyyy-MM-dd")}-格式化日期
+            evaluator.getJexlEngine().setFunctions(funcs);
+
+            jxlsHelper.processTemplate(context, transformer);
+            outputStream.flush();
+        } catch (Exception e) {
+            throw new CustomException("Excel导出异常,请重试");
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    throw new CustomException("Excel导出异常,inputStream.close异常");
+                }
+            }
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    throw new CustomException("Excel导出异常,outputStream.close异常");
+                }
+            }
+        }
+    }
+
+    /**
+     * <p>
+     * 自定义excel模板导出excel-浏览器导出<br>
+     * </p>
+     * <p>
+     * -----版本-----变更日期-----责任人-----变更内容<br>
+     * ─────────────────────────────────────<br>
+     * V1.0.0 2018年04月19日 luoxiang 初版<br>
+     *
+     * @param templateExcelURL
+     *            excel模板路径(包含至excel文件名)
+     * @param list
+     *            导出数据的List<Map<String, Object>>, 不批量导出时可传入null,excel中取值遍历示例:
+     *            jx:each(items="list" var = "temp" lastCell = "H12")->H12是指A12-H12行往下遍历
+     *            jx:area(lastCell="H13")->H13是指表格范围A1-H13
+     * @param param
+     *            导出数据的Map<String, Object>,可传入null,
+     *            excel中取值时示例(${param.参数名称}):${param.name}
+     * @param outPath
+     *            指定输出路径全称(***.xls)
+     * @throws CustomException
+     *             自定义异常,成功无返回,无异常 void,失败异常返回错误原因(e.getMessage())
+     * @since XMJR V3.0.0
+     *        </p>
+     */
+    public static void exportExcelToPath(String templateExcelURL,List<Map<String, Object>> list, Map<String, Object> param,
+                                         String outPath) throws CustomException{
+        if (StringUtils.isBlank(templateExcelURL)) {
+            throw new CustomException("Excel模板URL不能为空");
+        }
+
+        File file = new File(templateExcelURL);
+        File file2 = new File(outPath);
+
+
+        if (file.isDirectory()) {
+            throw new CustomException("Excel导出模板路径需包含模板文件名称");
+        }
+
+        if (file2.isDirectory()) {
+            throw new CustomException("Excel导出路径需包含文件名称");
+        }
+
+        if (!file.exists()) {
+            throw new CustomException("Excel导出模板文件不存在,请联系管理人员添加模板");
+        }
+
+        Map<String,Object> model = new HashMap<String,Object>();
+        if (list != null && !list.isEmpty()) {
+            model.put("list", list);
+        }
+        if (param != null && !param.isEmpty()) {
+            model.put("param", param);
+        }
+        if (model.isEmpty()) {
+            throw new CustomException("Excel导出数据为空,请传入导出数据");
+        }
+
+        if (model.isEmpty()) {
+            throw new CustomException("Excel导出数据为空,请传入导出数据");
+        }
+
+        Context context = new Context();
+        if (model != null) {
+            for (String key : model.keySet()) {
+                context.putVar(key, model.get(key));
+            }
+        }
+
+        InputStream inputStream = null;
+        OutputStream outputStream = null;
+        System.out.println("***************导入Excel模板的数据***************"+model);
+        try {
+
+            //将模板放在项目中
+            //InputStream in = ExportExcel.class.getResourceAsStream("/template/" + templateName);
+            inputStream = new BufferedInputStream(new FileInputStream(templateExcelURL));
+            outputStream =new FileOutputStream(file2);
             JxlsHelper jxlsHelper = JxlsHelper.getInstance();
             Transformer transformer  = jxlsHelper.createTransformer(inputStream, outputStream);
 
